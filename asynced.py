@@ -31,10 +31,6 @@ counter = Counter(FakeLock(), Value('i', 0))
 registry = Registry(FakeLock(), dict())
 
 
-class LoadingError(Exception):
-    pass
-
-
 semaphore = asyncio.Semaphore(15)
 
 
@@ -64,7 +60,7 @@ async def recursive_load(url, loop, http_session, remain_attempts=3):
                     counter.up()
                     asyncio.ensure_future(recursive_load(url, loop, http_session))
 
-        except LoadingError:
+        except Exception:
             logging.info(traceback.format_exc())
             if not remain_attempts:
                 logging.warning(f'{url} failed')
@@ -79,13 +75,10 @@ async def recursive_load(url, loop, http_session, remain_attempts=3):
 
 
 async def fetch(session, url):
-    try:
-        logging.info(f'waiting for {url}')
-        async with session.get(url, timeout=60) as response:
-            logging.info(f'loading {url}')
-            return await response.text()
-    except Exception as e:
-        raise LoadingError() from e
+    logging.info(f'waiting for {url}')
+    async with session.get(url, timeout=60) as response:
+        logging.info(f'loading {url}')
+        return await response.text()
 
 
 if __name__ == '__main__':
